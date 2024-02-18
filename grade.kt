@@ -47,7 +47,7 @@ class Info {
     fun addScore(){
         println("학번을 입력하세요")
         val stuNum = readln().toInt()
-        
+
         println("이름을 입력하세요")
         val stuName = readlnOrNull().toString()
         
@@ -73,26 +73,39 @@ class Info {
         val file = File(filePath)
         var listScore = mutableListOf<StudentInfo>()
         file.readLines().filter { it[0] == 'D' }.forEach { listScore.add(toScore(it)) }
+        println(listScore)
         return listScore
     }
 
 
-    fun readWIthNumber() :List<StudentInfo>{
-        println("학번을 입력하세요`")
-        val number = readlnOrNull()?.toInt()
-        val listByNum = mutableListOf<StudentInfo>()
+    fun loadByNumber(): MutableList<StudentInfo> {
+        println("학번을 입력하세요")
+        val stuNum = readln().toInt()
         val file = File(filePath)
-        file.readLines().filter { it[1] == number?.toInt()?.toChar() }.forEach { listByNum.add(toScore(it)) }
+        var listScore = mutableListOf<StudentInfo>()
+        file.readLines()
+            .filter { it.startsWith(DataType.Data.dataType) }
+            .map { toScore(it) }
+            .filter { it.studentNum == stuNum }
+            .forEach { listScore.add(it) }
+        println(listScore)
+        return listScore
 
-        return listByNum.toList()
+
     }
-    fun readByName() :List<StudentInfo>{
+    fun loadByName() :List<StudentInfo>{
         println("이름을 입력하세요`")
-        val name = readlnOrNull().toString()
-        val listByName = mutableListOf<StudentInfo>()
+        val name = readln()
         val file = File(filePath)
-        file.readLines().filter { it[2].toString() == name }.forEach { listByName.add(toScore(it)) }
-        return listByName.toList()
+        var listScore = mutableListOf<StudentInfo>()
+        file.readLines()
+            .filter { it.startsWith(DataType.Data.dataType) }
+            .map { toScore(it) }
+            .filter { it.studentName == name }
+            .forEach { listScore.add(it) }
+        println(listScore)
+        return listScore
+
     }
 
     fun writeScore() {
@@ -106,6 +119,34 @@ class Info {
 
     private fun writeHead() {
         file.writeText(head)
+    }
+
+    fun calculateOverallSubjectAverages(): Map<String, Double> {
+        val subjectAverages = mutableMapOf<String, Double>()
+
+        // 과목별 성적을 더한 합계 초기화
+        val subjectTotals = mutableMapOf(
+            "korean" to 0.0,
+            "math" to 0.0,
+            "english" to 0.0,
+            "social" to 0.0,
+            "science" to 0.0
+        )
+
+        for (studentInfo in listScore) {
+            subjectTotals["korean"] = subjectTotals["korean"]!! + studentInfo.koreanGrade
+            subjectTotals["math"] = subjectTotals["math"]!! + studentInfo.mathGrade
+            subjectTotals["english"] = subjectTotals["english"]!! + studentInfo.englishGrade
+            subjectTotals["social"] = subjectTotals["social"]!! + studentInfo.socialGrade
+            subjectTotals["science"] = subjectTotals["science"]!! + studentInfo.scienceGrade
+        }
+
+        // 과목별 평균 계산
+        for ((subject, total) in subjectTotals) {
+            subjectAverages[subject] = total / listScore.size
+        }
+
+        return subjectAverages
     }
 
     companion object {
@@ -143,10 +184,10 @@ class Menu {
                 val secondSelection = kotlin.runCatching { readln().toInt() }.getOrDefault(3)
                 when (secondSelection) {
                     1 -> {
-                        scoreTable.readByName()
+                        scoreTable.loadByName()
                     }
                     2 -> {
-                        scoreTable.readWIthNumber()
+                        scoreTable.loadByNumber()
                     }
                     3 -> {
                         scoreTable.loadScores()
@@ -166,6 +207,7 @@ class Menu {
                     kotlin.runCatching { readlnOrNull().toString() }.getOrDefault("예")
                 if (userDecision == "예") {
                     println("종료하겠습니다")
+                    return
                 }
             }
             else->{
@@ -176,7 +218,7 @@ class Menu {
     }
 
     private fun thirdMenu() {
-        println("1.평균 2.표준편차 3.모두보기")
+        println("1.평균 2.표준편차 3.모두보기 4.과목별평균")
         val thirdSelection = kotlin.runCatching { readln().toInt() }.getOrDefault(3)
 
         when (thirdSelection) {
@@ -196,11 +238,18 @@ class Menu {
                 val totalStatistics2 = studentInfoList.map { it.calculateStandardDeviation() }.average()
                 println("전체 통계| 평균:$totalStatistics 표준편차:$totalStatistics2")
             }
+            4 -> {
+                val overallSubjectAverages = scoreTable.calculateOverallSubjectAverages()
+                println("전체 학생들의 과목별 평균:")
+                for ((subject, average) in overallSubjectAverages) {
+                    println("$subject: $average")
+                }
+            }
             else -> {
                 println("잘못된 선택입니다.")
             }
         }
-        thirdMenu()
+        firstMenu()
     }
 }
 
