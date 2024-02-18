@@ -1,4 +1,7 @@
 import java.io.File
+import kotlin.math.pow
+import kotlin.math.sqrt
+
 
 data class StudentInfo(
     val studentNum: Int,
@@ -11,12 +14,28 @@ data class StudentInfo(
 ){
     private val totalScore = koreanGrade + mathGrade + englishGrade + socialGrade + scienceGrade
     val average = totalScore/5
+
+
+    fun calculateStandardDeviation(): Double {
+        val squaredDifferences = listOf(
+            (koreanGrade - average).pow(2),
+            (mathGrade - average).pow(2),
+            (englishGrade - average).pow(2),
+            (socialGrade - average).pow(2),
+            (scienceGrade - average).pow(2)
+        )
+
+        val meanOfSquaredDifferences = squaredDifferences.average()
+
+        return sqrt(meanOfSquaredDifferences)
+    }
  }
 
 class Info {
     private val filePath = "/home/seungbin/IdeaProjects/study/codes/score.txt"
     private val head = "H|학번|이름|국어|수학|영어|사회|과학"
     private val file = File(filePath)
+    val listScore = loadScores()
 
     enum class DataType(val dataType: String) {
         Data("D"),
@@ -25,7 +44,7 @@ class Info {
     }
     
     
-    fun typingInfo(): StudentInfo {
+    fun addScore(){
         println("학번을 입력하세요")
         val stuNum = readln().toInt()
         
@@ -47,14 +66,14 @@ class Info {
         println("사회성적을 입력하세요")
         val soScore = readln().toDouble()
         
-        return StudentInfo(stuNum,stuName,krScore,mathScore,engScore,scScore,soScore)
+        listScore.add(StudentInfo(stuNum,stuName,krScore,mathScore,engScore,scScore,soScore))
     }
 
-    fun read(): List<StudentInfo> {
+    fun loadScores(): MutableList<StudentInfo> {
         val file = File(filePath)
-        val listScore = mutableListOf<StudentInfo>()
+        var listScore = mutableListOf<StudentInfo>()
         file.readLines().filter { it[0] == 'D' }.forEach { listScore.add(toScore(it)) }
-        return listScore.toList()
+        return listScore
     }
 
 
@@ -76,16 +95,16 @@ class Info {
         return listByName.toList()
     }
 
-    fun write(studentInfoList: List<StudentInfo>) {
-        clear()
+    fun writeScore() {
+        writeHead()
         file.appendText(head + "\n")
-        studentInfoList.forEach {
+        listScore.forEach {
             val line = "${DataType.Data.dataType}|${it.studentNum}|${it.studentName}|${it.koreanGrade}|${it.mathGrade}|${it.englishGrade}|${it.socialGrade}|${it.scienceGrade}\n"
             file.appendText(line)
         }
     }
 
-    private fun clear() {
+    private fun writeHead() {
         file.writeText(head)
     }
 
@@ -102,17 +121,13 @@ class Info {
                 scoreAry[7].toDouble()
             )
         }
-
-        fun breakpoint() {
-            return
-        }
     }
 }
 
 class Menu {
-    private val infoInstance = Info()
+    private val scoreTable = Info()
 
-    fun firstMenu(): Any {
+    fun firstMenu() {
         println("1.성적입력 2.성적조회 3.통계보기 4.저장하기 0.종료")
         val selected = kotlin.runCatching {
             readln().toInt()
@@ -120,46 +135,77 @@ class Menu {
 
         when (selected) {
             1 -> {
-                val stuInformation = infoInstance.typingInfo()
-                return stuInformation
-
+                scoreTable.addScore()
             }
-            2 ->{
+            2 -> {
                 println("조회 방법을 선택해주세요")
                 println("1.이름 2.학번 3.전체")
                 val secondSelection = kotlin.runCatching { readln().toInt() }.getOrDefault(3)
-                when(secondSelection){
-                    1->{
-                        infoInstance.readByName()
+                when (secondSelection) {
+                    1 -> {
+                        scoreTable.readByName()
                     }
-                    2->{
-                        infoInstance.readWIthNumber()
+                    2 -> {
+                        scoreTable.readWIthNumber()
                     }
-                    3 ->{
-                        infoInstance.read()
+                    3 -> {
+                        scoreTable.loadScores()
                     }
                 }
             }
-            3->{}
-
-            4->{}
-
-            0->{
+            3 -> {
+                thirdMenu()
+            }
+            4 -> {
+                scoreTable.writeScore()
+            }
+            0 -> {
                 println("종료하시겠습니까?")
                 println("예/아니요")
-                val userDecision = kotlin.runCatching { readlnOrNull().toString() }.getOrDefault("예")
-                if(userDecision == "예"){
+                val userDecision =
+                    kotlin.runCatching { readlnOrNull().toString() }.getOrDefault("예")
+                if (userDecision == "예") {
                     println("종료하겠습니다")
-                }else{
-                    return firstMenu()
                 }
             }
+            else->{
+                println("숫자를 제대로 입력해주십시오")
+            }
         }
+        firstMenu()
+    }
+
+    private fun thirdMenu() {
+        println("1.평균 2.표준편차 3.모두보기")
+        val thirdSelection = kotlin.runCatching { readln().toInt() }.getOrDefault(3)
+
+        when (thirdSelection) {
+            1 -> {
+                val studentInfoList = scoreTable.loadScores()
+                val totalAverage = studentInfoList.map { it.average }.average()
+                println("전체 학생의 평균: $totalAverage")
+            }
+            2 -> {
+                val studentInfoList = scoreTable.loadScores()
+                val totalStandardDeviation = studentInfoList.map { it.calculateStandardDeviation() }.average()
+                println("전체 학생의 평균 표준편차: $totalStandardDeviation")
+            }
+            3-> {
+                val studentInfoList = scoreTable.loadScores()
+                val totalStatistics = studentInfoList.map { it.average }.average()
+                val totalStatistics2 = studentInfoList.map { it.calculateStandardDeviation() }.average()
+                println("전체 통계| 평균:$totalStatistics 표준편차:$totalStatistics2")
+            }
+            else -> {
+                println("잘못된 선택입니다.")
+            }
+        }
+        thirdMenu()
     }
 }
-
 
 fun main() {
     val information = Menu()
     information.firstMenu()
 }
+
