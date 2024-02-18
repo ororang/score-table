@@ -32,7 +32,7 @@ data class StudentInfo(
  }
 
 class Info {
-    private val filePath = "/home/seungbin/IdeaProjects/study/codes/score.txt"
+    private val filePath = "Your .txt file address"
     private val head = "H|학번|이름|국어|수학|영어|사회|과학"
     private val file = File(filePath)
     val listScore = loadScores()
